@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { BookOpen, Send, Mic, MicOff } from 'lucide-react';
+import { Send } from 'lucide-react';
 
 interface Chat {
   question: string;
@@ -14,27 +14,8 @@ interface Chat {
 const ChatApp: React.FC = () => {
   const [message, setMessage] = useState<string>('');
   const [chatHistory, setChatHistory] = useState<Chat[]>([]);
-  const [isListening, setIsListening] = useState<boolean>(false);
-  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const messageRef = useRef<HTMLTextAreaElement | null>(null);
-
-  useEffect(() => {
-    const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      const recognitionInstance = new SpeechRecognition();
-      recognitionInstance.continuous = false;
-      recognitionInstance.interimResults = false;
-      recognitionInstance.onresult = (event: SpeechRecognitionEvent) => {
-        const speechToText = event.results[0][0].transcript;
-        setMessage(speechToText);
-      };
-      setRecognition(recognitionInstance);
-    } else {
-      console.error('SpeechRecognition is not supported in this browser.');
-    }
-  }, []);
 
   const addQuestion = (question: string) => {
     setChatHistory((prevChat) => [...prevChat, { question }]);
@@ -55,22 +36,12 @@ const ChatApp: React.FC = () => {
     addQuestion(saveMessage);
     setIsLoading(true);
 
+    // Mock response for demonstration purposes
     setTimeout(() => {
       const mockResponse = `This is a mock response for: ${saveMessage}`;
       addAnswer(mockResponse);
       setIsLoading(false);
     }, 1000);
-  };
-
-  const handleSpeechRecognition = () => {
-    if (recognition) {
-      if (!isListening) {
-        recognition.start();
-      } else {
-        recognition.stop();
-      }
-      setIsListening(!isListening);
-    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -87,7 +58,7 @@ const ChatApp: React.FC = () => {
         <Card className="bg-white/90 p-6 rounded-lg shadow-lg max-w-3xl mx-auto mb-4">
           <h2 className="text-2xl font-bold mb-4 text-[#00BFA5]">Welcome to StoryBot!</h2>
           <p className="text-gray-700 mb-4">
-            I'm your friendly AI storyteller. Let's create amazing stories together! What kind of adventure would you like to start?
+            I&quot;m your friendly AI storyteller. Let&quot;s create amazing stories together! What kind of adventure would you like to start?
           </p>
         </Card>
 
@@ -138,17 +109,6 @@ const ChatApp: React.FC = () => {
           >
             <Send className="h-4 w-4 mr-2" />
             Send
-          </Button>
-          <Button
-            variant="outline"
-            className="ml-2"
-            onClick={handleSpeechRecognition}
-          >
-            {isListening ? (
-              <MicOff className="h-4 w-4" />
-            ) : (
-              <Mic className="h-4 w-4" />
-            )}
           </Button>
         </div>
       </div>

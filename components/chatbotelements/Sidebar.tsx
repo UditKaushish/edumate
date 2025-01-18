@@ -11,7 +11,7 @@ interface SidebarProps {
   handleChatClick?: (chatId: number) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ handleChatClick }) => {
+const Sidebar: React.FC<SidebarProps> = () => {
   const [currentChats, setCurrentChats] = useState<Chat[]>([
     { id: 1, chatName: 'Chat 1' },
     { id: 2, chatName: 'Chat 2' },

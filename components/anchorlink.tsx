@@ -1,6 +1,6 @@
 import { usePathname, useRouter } from 'next/navigation'
 
-function AnchorLink({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
+ export function AnchorLink({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
 

@@ -52,7 +52,7 @@ export default function Page() {
             <BookOpen className="w-16 h-16 text-[#A461D8] mb-6" />
             <h3 className="text-2xl font-semibold mb-4">Endless Stories</h3>
             <p className="text-gray-600 text-lg">
-              Dive into a world of limitless tales, where every story is unique and tailored to your child's interests.
+              Dive into a world of limitless tales, where every story is unique and tailored to your child&quot;s interests.
             </p>
           </Card>
           <Card className="p-8 hover:shadow-xl transition-all hover:scale-105 border-t-4 border-t-[#6FCF97]">
@@ -156,7 +156,7 @@ export default function Page() {
                 ))}
               </div>
               <p className="text-gray-600 text-lg mb-6">
-                "StoryBot has transformed bedtime for us. My daughter is always excited to continue her personalized story adventure. It's both entertaining and educational!"
+                StoryBot has transformed bedtime for us. My daughter is always excited to continue her personalized story adventure. It&quot;s both entertaining and educational!
               </p>
               <p className="font-semibold text-lg">- Parent of Alex, 7</p>
             </Card>
@@ -167,7 +167,7 @@ export default function Page() {
                 ))}
               </div>
               <p className="text-gray-600 text-lg mb-6">
-                "I'm amazed at how StoryBot adapts to my son's interests. It's helped improve his vocabulary and sparked a love for storytelling. Highly recommended!"
+              &quot;I&quot;m amazed at how StoryBot adapts to my son&quot;s interests. It&quot;s helped improve his vocabulary and sparked a love for storytelling. Highly recommended!&quot;
               </p>
               <p className="font-semibold text-lg">- Parent of Sam, 5</p>
             </Card>
