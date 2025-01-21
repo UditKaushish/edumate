@@ -50,7 +50,6 @@ export const Select: React.FC<SelectProps> = ({ value, onValueChange, children, 
 
 export const SelectTrigger: React.FC<{ children: React.ReactNode; className?: string }> = ({
   children,
-  className,
 }) => <>{children}</>;
 
 export const SelectContent: React.FC<{ children: React.ReactNode }> = ({ children }) => (
