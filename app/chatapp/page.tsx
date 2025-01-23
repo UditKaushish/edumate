@@ -32,7 +32,7 @@ const ChatApp: React.FC = () => {
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+    if ("speechSynthesis" in window) {
       synthesisRef.current = window.speechSynthesis;
 
       const voices = synthesisRef.current.getVoices();
@@ -69,19 +69,34 @@ const ChatApp: React.FC = () => {
     }
   };
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (message.trim() === "") return;
 
     const saveMessage = message;
     addQuestion(saveMessage);
     setIsLoading(true);
 
-    // Mock response
-    setTimeout(() => {
-      const mockResponse = `This is a mock response for: ${saveMessage}`;
-      addAnswer(mockResponse);
+    try {
+      const response = await fetch("http://127.0.0.1:5000/get-answer", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ question: saveMessage }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch answer");
+      }
+
+      const data = await response.json();
+      addAnswer(data.answer);
+    } catch (error) {
+      console.error("Error fetching answer:", error);
+      addAnswer("Sorry, I couldn't fetch an answer. Please try again.");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -119,17 +134,17 @@ const ChatApp: React.FC = () => {
             </div>
             {voiceEnabled && (
               <Select value={selectedVoice} onValueChange={setSelectedVoice}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select a voice" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableVoices.map((voice) => (
-                    <SelectItem key={voice.name} value={voice.name} onClick={setSelectedVoice}>
-                      {voice.name} ({voice.lang})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select a voice" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableVoices.map((voice) => (
+                  <SelectItem key={voice.name} value={voice.name} onClick={setSelectedVoice}>
+                    {voice.name} ({voice.lang})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             )}
           </div>
         </Card>
