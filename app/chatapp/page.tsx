@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import ChatSidebar from "@/components/ChatSidebar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Chat {
+  id: string;
+  name: string;
   question: string;
   answer?: string;
 }
@@ -27,6 +30,8 @@ const ChatApp: React.FC = () => {
   const [voiceEnabled, setVoiceEnabled] = useState<boolean>(false);
   const [availableVoices, setAvailableVoices] = useState<Voice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<string>("");
+  const [chats, setChats] = useState<Chat[]>([]); // List of all chats
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
 
   const messageRef = useRef<HTMLTextAreaElement | null>(null);
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
@@ -49,7 +54,9 @@ const ChatApp: React.FC = () => {
   }, []);
 
   const addQuestion = (question: string) => {
-    setChatHistory((prevChat) => [...prevChat, { question }]);
+    if (!activeChatId) return;
+
+    setChatHistory((prevChat) => [...prevChat, { id: activeChatId, name: "Chat", question }]);
     setMessage("");
   };
 
@@ -114,25 +121,71 @@ const ChatApp: React.FC = () => {
     }
   };
 
+  // ChatSidebar handlers
+  const handleNewChat = () => {
+    const newChat = {
+      id: Date.now().toString(),
+      name: `Chat ${chats.length + 1}`,
+      question: "",
+      answer: "",
+    };
+    setChats((prevChats) => [...prevChats, newChat]);
+    setActiveChatId(newChat.id);
+    setChatHistory([]);
+  };
+
+  const handleSelectChat = (id: string) => {
+    setActiveChatId(id);
+    setChatHistory(chats.filter((chat) => chat.id === id));
+  };
+
+  const handleRenameChat = (id: string, newName: string) => {
+    setChats((prevChats) =>
+      prevChats.map((chat) => (chat.id === id ? { ...chat, name: newName } : chat))
+    );
+  };
+
+  const handleDeleteChat = (id: string) => {
+    setChats((prevChats) => prevChats.filter((chat) => chat.id !== id));
+    if (activeChatId === id) {
+      setActiveChatId(null);
+      setChatHistory([]);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#00BFA5] to-[#6EC5E9] flex flex-col">
-      <main className="flex-grow p-4 pb-24 overflow-y-auto">
-        <Card className="bg-white/90 p-6 rounded-lg shadow-lg max-w-3xl mx-auto mb-4">
-          <h2 className="text-2xl font-bold mb-4 text-[#00BFA5]">Welcome to StoryBot!</h2>
-          <p className="text-gray-700 mb-4">
-            I'm your friendly AI storyteller. Let's create amazing stories together!
-          </p>
-          <div className="flex items-center space-x-4 mb-4">
-            <div className="flex items-center space-x-2">
-              <Switch id="voice-output" checked={voiceEnabled} onCheckedChange={toggleVoiceOutput} />
-              <Label htmlFor="voice-output">Enable voice output</Label>
-              {voiceEnabled ? (
-                <Volume2 className="h-4 w-4 text-[#00BFA5]" />
-              ) : (
-                <VolumeX className="h-4 w-4 text-gray-400" />
-              )}
-            </div>
-            {voiceEnabled && (
+    <div className="min-h-screen flex bg-gradient-to-br from-[#00BFA5] to-[#6EC5E9]">
+      {/* Chat Sidebar */}
+      <ChatSidebar
+        chats={chats}
+        activeChat={activeChatId}
+        onNewChat={handleNewChat}
+        onSelectChat={handleSelectChat}
+        onRenameChat={handleRenameChat}
+        onDeleteChat={handleDeleteChat}
+      />
+
+      {/* Main Content */}
+      <div className="flex-grow flex flex-col">
+        <main className="flex-grow p-4 pb-24 overflow-y-auto">
+          {/* Main Chat Display */}
+          <Card className="bg-white/90 p-6 rounded-lg shadow-lg max-w-3xl mx-auto mb-4">
+            <h2 className="text-2xl font-bold mb-4 text-[#00BFA5]">Welcome to StoryBot!</h2>
+            <p className="text-gray-700 mb-4">
+              I'm your friendly AI storyteller. Let's create amazing stories together!
+            </p>
+            {/* Voice Toggle */}
+            <div className="flex items-center space-x-4 mb-4">
+              <div className="flex items-center space-x-2">
+                <Switch id="voice-output" checked={voiceEnabled} onCheckedChange={toggleVoiceOutput} />
+                <Label htmlFor="voice-output">Enable voice output</Label>
+                {voiceEnabled ? (
+                  <Volume2 className="h-4 w-4 text-[#00BFA5]" />
+                ) : (
+                  <VolumeX className="h-4 w-4 text-gray-400" />
+                )}
+              </div>
+              {voiceEnabled && (
               <Select value={selectedVoice} onValueChange={setSelectedVoice}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Select a voice" />
@@ -146,60 +199,63 @@ const ChatApp: React.FC = () => {
               </SelectContent>
             </Select>
             )}
-          </div>
-        </Card>
+            </div>
+          </Card>
 
-        <div className="space-y-4 max-w-3xl mx-auto">
-          {chatHistory.map((chat, index) => (
-            <div key={index} className="flex flex-col space-y-2">
-              <Card className="bg-[#FFA726] text-white p-4 rounded-lg self-end max-w-[80%]">
-                <p>
-                  <strong>You:</strong> {chat.question}
-                </p>
-              </Card>
-              {chat.answer && (
-                <Card className="bg-white p-4 rounded-lg self-start max-w-[80%]">
+          {/* Chat History */}
+          <div className="space-y-4 max-w-3xl mx-auto">
+            {chatHistory.map((chat, index) => (
+              <div key={index} className="flex flex-col space-y-2">
+                <Card className="bg-[#FFA726] text-white p-4 rounded-lg self-end max-w-[80%]">
                   <p>
-                    <strong>StoryBot:</strong> {chat.answer}
+                    <strong>You:</strong> {chat.question}
                   </p>
                 </Card>
-              )}
-            </div>
-          ))}
-          {isLoading && (
-            <Card className="bg-white p-4 rounded-lg self-start max-w-[80%]">
-              <p className="flex items-center">
-                <span className="mr-2">StoryBot is thinking</span>
-                <span className="loading loading-dots loading-sm"></span>
-              </p>
-            </Card>
-          )}
-        </div>
-      </main>
+                {chat.answer && (
+                  <Card className="bg-white p-4 rounded-lg self-start max-w-[80%]">
+                    <p>
+                      <strong>StoryBot:</strong> {chat.answer}
+                    </p>
+                  </Card>
+                )}
+              </div>
+            ))}
+            {isLoading && (
+              <Card className="bg-white p-4 rounded-lg self-start max-w-[80%]">
+                <p className="flex items-center">
+                  <span className="mr-2">StoryBot is thinking</span>
+                  <span className="loading loading-dots loading-sm"></span>
+                </p>
+              </Card>
+            )}
+          </div>
+        </main>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white p-4">
-        <div className="flex items-center max-w-3xl mx-auto">
-          <Textarea
-            ref={messageRef}
-            className="flex-grow mr-2 p-2 rounded-lg border-2 border-[#00BFA5] focus:ring-2 focus:ring-[#00BFA5] focus:border-transparent"
-            value={message}
-            placeholder="Type your message here..."
-            onChange={handleInputChange}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-              }
-            }}
-            rows={1}
-            style={{ resize: "none" }}
-          />
-          <div className="flex space-x-2">
-            <VoiceInputButton onTranscript={setMessage} />
-            <Button className="bg-[#FFA726] hover:bg-[#FF6F61] text-white" onClick={sendMessage}>
-              <Send className="h-4 w-4 mr-2" />
-              Send
-            </Button>
+        {/* Message Input */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white p-4">
+          <div className="flex items-center max-w-3xl mx-auto">
+            <Textarea
+              ref={messageRef}
+              className="flex-grow mr-2 p-2 rounded-lg border-2 border-[#00BFA5] focus:ring-2 focus:ring-[#00BFA5] focus:border-transparent"
+              value={message}
+              placeholder="Type your message here..."
+              onChange={handleInputChange}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  sendMessage();
+                }
+              }}
+              rows={1}
+              style={{ resize: "none" }}
+            />
+            <div className="flex space-x-2">
+              <VoiceInputButton onTranscript={setMessage} />
+              <Button className="bg-[#FFA726] hover:bg-[#FF6F61] text-white" onClick={sendMessage}>
+                <Send className="h-4 w-4 mr-2" />
+                Send
+              </Button>
+            </div>
           </div>
         </div>
       </div>
