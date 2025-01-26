@@ -5,18 +5,120 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { Wand2 } from 'lucide-react'
+import { toast } from '@/components/ui/use-toast'
+import axios from 'axios'
+
+type Data = {
+  email: string
+  password: string
+  name: string
+  token: string;
+}
+
+type Error = {
+  success: boolean,
+  message: string
+}
 
 export default function SignUpPage() {
+  const queryClient = useQueryClient() // Access the TanStack Query client
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [name, setName] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const signUpUser = async (data: { email: string; password: string; name: string }) => {
+    setLoading(true)
+    try {
+      const response = await axios.post<Data>('http://localhost:5000/auth/register', data, {
+        headers: { 'Content-Type': 'application/json' },
+      })
+      setLoading(false)
+      return response.data
+    } catch (error) {
+      setLoading(false)
+      console.error('Sign-up failed:', error)
+      toast({
+        title: "Sign-up Failed",
+        description: "There was an issue with your sign-up. Please try again.",
+        variant: "destructive",
+      })
+      throw new Error('Sign-up failed')
+    }
+  }
+
+  const mutation = useMutation({
+    mutationFn: signUpUser,
+    onSuccess: (data: Data) => {
+      // Save the token in TanStack Query as Bearer token
+      queryClient.setQueryData(['auth'], { token: `Bearer ${data.token}` })
+
+      toast({
+        title: "Sign-up Successful",
+        description: "Welcome aboard! Redirecting you...",
+        variant: "default",
+      })
+
+      // Optionally redirect the user
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Sign-up Failed",
+        description: error.message,
+        variant: "destructive",
+      })
+    },
+  })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle sign-up logic here
-    console.log('Sign-up attempt with:', email, password, confirmPassword)
+
+    if (password !== confirmPassword) {
+      toast({
+        title: "Password Mismatch",
+        description: "The passwords do not match. Please try again.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    mutation.mutate({ email, password, name })
+  }
+
+  // Fetch Example: Including Bearer Token in Headers
+  const makeAuthorizedRequest = async () => {
+    const auth = queryClient.getQueryData<{ token: string }>(['auth'])
+    const token = auth?.token
+
+    if (!token) {
+      toast({
+        title: "Unauthorized",
+        description: "You need to log in first.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      const response = await axios.get('http://localhost:5000/protected-route', {
+        headers: {
+          Authorization: token, // Use the Bearer token
+          'Content-Type': 'application/json',
+        },
+      })
+      console.log(response.data)
+    } catch (error) {
+      console.error('Protected request failed:', error)
+      toast({
+        title: "Request Failed",
+        description: "Could not fetch the protected resource.",
+        variant: "destructive",
+      })
+    }
   }
 
   return (
@@ -26,6 +128,17 @@ export default function SignUpPage() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Name</Label>
+            <Input
+              id="name"
+              type="text"
+              placeholder="Your Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -59,15 +172,19 @@ export default function SignUpPage() {
               required
             />
           </div>
-          <Button type="submit" className="w-full bg-[#FFA726] hover:bg-[#FF6F61] text-white">
-            Sign Up
+          <Button
+            type="submit"
+            className="w-full bg-[#FFA726] hover:bg-[#FF6F61] text-white"
+            disabled={loading}
+          >
+            {loading ? 'Signing Up...' : 'Sign Up'}
           </Button>
         </form>
       </CardContent>
       <CardFooter className="flex flex-col space-y-4">
-        <Button variant="outline" className="w-full">
+        <Button variant="outline" className="w-full" onClick={makeAuthorizedRequest}>
           <Wand2 className="mr-2 h-4 w-4" />
-          Sign Up with Magic Link
+          Test Protected Request
         </Button>
         <p className="text-sm text-center">
           Already have an account?{' '}
@@ -79,4 +196,3 @@ export default function SignUpPage() {
     </Card>
   )
 }
-

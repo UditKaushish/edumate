@@ -1,105 +1,147 @@
-'use client'
+"use client"
 
-import { useState } from 'react'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { useState } from "react"
+import Link from "next/link"
+import { usePathname, useRouter } from "next/navigation"
+import { useMutation, useQuery ,useQueryClient} from "@tanstack/react-query"
+import axios from "axios"
 import { Button } from "@/components/ui/button"
-import { BookOpen, LogIn, UserPlus, Menu, X } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { BookOpen, LogIn, LogOut, Menu, X } from "lucide-react"
+import NavLink from "@/components/support/navlink"
+import AnchorLink from "@/components/support/anchorlink"
+
+export const useProfile = ()=>{
+  return useQuery({
+    queryKey: ["profile"],
+    queryFn: async () => {
+      const authToken = typeof window !== "undefined" ? localStorage.getItem("Token") : null
+      if (!authToken) throw new Error("No token found")
+      const response = await axios.get(`http://localhost:5000/auth/profile`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      })
+      return response.data
+    },
+  })
+}
+
 export function Navigation() {
   const pathname = usePathname()
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-
-  const toggleMenu = () => setIsMenuOpen(!isMenuOpen)
-
-  const isHomePage = pathname === '/'
-
-  return (
-    <nav className="bg-[#00BFA5] p-4 shadow-md">
-      <div className="container mx-auto">
-        <div className="flex justify-between items-center">
-          <Link href="/" className="flex items-center space-x-2">
-            <BookOpen className="h-6 w-6 text-white" />
-            <span className="text-xl font-bold text-white">StoryBot</span>
-          </Link>
-          <div className="hidden md:flex space-x-4 items-center">
-            <NavLink href="/" active={isHomePage}>Home</NavLink>
-            <AnchorLink href="#aboutus" active={isHomePage && window.location.hash === '#aboutus'}>About</AnchorLink>
-            <AnchorLink href="#features" active={isHomePage && window.location.hash === '#features'}>Features</AnchorLink>
-            <Button asChild variant="ghost" className="text-white hover:bg-[#00A896]">
-              <Link href="/login">
-                <LogIn className="mr-2 h-4 w-4" />
-                Login
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="bg-white text-[#00BFA5] hover:bg-[#E4E4E4]">
-              <Link href="/signup">
-                <UserPlus className="mr-2 h-4 w-4" />
-                Sign Up
-              </Link>
-            </Button>
-          </div>
-          <button className="md:hidden text-white" onClick={toggleMenu}>
-            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
-        {isMenuOpen && (
-          <div className="mt-4 flex flex-col space-y-4 md:hidden">
-            <NavLink href="/" active={isHomePage}>Home</NavLink>
-            <AnchorLink href="#about" active={isHomePage && window.location.hash === '#about'}>About</AnchorLink>
-            <AnchorLink href="#features" active={isHomePage && window.location.hash === '#features'}>Features</AnchorLink>
-            <Button asChild variant="ghost" className="text-white hover:bg-[#00A896] justify-start">
-              <Link href="/login">
-                <LogIn className="mr-2 h-4 w-4" />
-                Login
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="bg-white text-[#00BFA5] hover:bg-[#E4E4E4] justify-start">
-              <Link href="/signup">
-                <UserPlus className="mr-2 h-4 w-4" />
-                Sign Up
-              </Link>
-            </Button>
-          </div>
-        )}
-      </div>
-    </nav>
-  )
-}
-
-function NavLink({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className={`text-white hover:text-[#E4E4E4] px-3 py-2 rounded-md text-sm font-medium ${
-        active ? 'bg-[#00A896]' : ''
-      }`}
-    >
-      {children}
-    </Link>
-  )
-}
-
-function AnchorLink({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
-  const pathname = usePathname()
   const router = useRouter()
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const queryClient = useQueryClient()
 
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (pathname !== '/') {
-      e.preventDefault()
-      router.push(`/${href}`)
+  // Profile Query
+  const {
+    data: profileData,
+    isSuccess,
+    isPending
+  } = useProfile();
+
+  // Logout Mutation
+  const { mutate: logout } = useMutation({
+    mutationFn: async () => {
+      const authToken = localStorage.getItem("Token")
+      if (!authToken) throw new Error("No token found")
+      const response = await axios.post(
+        `http://localhost:5000/auth/logout`,
+        {},
+        { headers: { Authorization: `Bearer ${authToken}` } },
+      )
+      localStorage.removeItem("Token")
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      router.push("/")
+      //reload the page
+      window.location.reload();
+    },
+  })
+
+  const toggleMenu = () => setIsMenuOpen((prev) => !prev)
+  const handleMenuClick = () => setIsMenuOpen(false)
+
+  const isLoggedIn = isSuccess && profileData?.success
+
+  const handleAuthAction = () => {
+    if (isLoggedIn) {
+      logout()
+    } else {
+      router.push("/login")
     }
   }
 
+  const AuthButton = ({ className = "" }) => (
+    <Button variant="ghost" className={`text-white hover:bg-accent ${className}`} onClick={handleAuthAction}>
+      <div className="flex items-center">
+        {isLoggedIn ? <LogOut className="mr-2 h-4 w-4" /> : <LogIn className="mr-2 h-4 w-4" />}
+        <span>{isLoggedIn ? "Logout" : "Login"}</span>
+      </div>
+    </Button>
+  )
+
   return (
-    <a
-      href={href}
-      onClick={handleClick}
-      className={`text-white hover:text-[#E4E4E4] px-3 py-2 rounded-md text-sm font-medium ${
-        active ? 'bg-[#00A896]' : ''
-      }`}
-    >
-      {children}
-    </a>
+    <nav className="bg-[#00BFA5] p-4 shadow-md">
+      <div className="container mx-auto flex justify-between items-center">
+        <Link href="/" className="flex items-center space-x-2">
+          <BookOpen className="h-6 w-6 text-white" />
+          <span className="text-xl font-bold text-white">StoryBot</span>
+        </Link>
+        <div className="hidden md:flex space-x-4 items-center">
+          <NavLink href="/" active={pathname === "/"}>
+            Home
+          </NavLink>
+          <AnchorLink href="#about" active={pathname === "/" && window.location.hash === "#about"}>
+            About
+          </AnchorLink>
+          <AnchorLink href="#features" active={pathname === "/" && window.location.hash === "#features"}>
+            Features
+          </AnchorLink>
+          {isPending ? (
+            <Button variant="ghost" className="text-white" disabled>
+              Loading...
+            </Button>
+          ) : (
+            <AuthButton />
+          )}
+        </div>
+        <button
+          className="md:hidden text-white"
+          onClick={toggleMenu}
+          aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={isMenuOpen}
+        >
+          {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+      </div>
+      {isMenuOpen && (
+        <div className="mt-4 flex flex-col space-y-4 md:hidden">
+          <NavLink href="/" active={pathname === "/"} onClick={handleMenuClick}>
+            Home
+          </NavLink>
+          <AnchorLink
+            href="#about"
+            active={pathname === "/" && window.location.hash === "#about"}
+            onClick={handleMenuClick}
+          >
+            About
+          </AnchorLink>
+          <AnchorLink
+            href="#features"
+            active={pathname === "/" && window.location.hash === "#features"}
+            onClick={handleMenuClick}
+          >
+            Features
+          </AnchorLink>
+          {isPending ? (
+            <Button variant="ghost" className="text-white justify-start" disabled>
+              Loading...
+            </Button>
+          ) : (
+            <AuthButton className="justify-start" />
+          )}
+        </div>
+      )}
+    </nav>
   )
 }

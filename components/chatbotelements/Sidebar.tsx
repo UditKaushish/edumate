@@ -4,12 +4,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { PlusCircle, Pencil, Trash2, Menu, X } from "lucide-react"
-
 interface Chat {
   id: string
   name: string
 }
-
 interface ChatSidebarProps {
   chats: Chat[]
   activeChat: string | null
@@ -39,6 +37,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
   const handleRenameSubmit = (id: string) => {
     onRenameChat(id, editingChatName)
+    
     setEditingChatId(null)
   }
 

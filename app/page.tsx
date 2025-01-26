@@ -1,9 +1,22 @@
+"use client";
+import { useProfile } from "@/components/navigation";
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { BookOpen, MessageCircle, Sparkles, Star, Wand2, Zap, Heart, Brain } from 'lucide-react'
 import Image from "next/image"
+import { useRouter } from "next/navigation";
 
 export default function Page() {
+  const router = useRouter();
+  const {isSuccess} = useProfile();
+  const isLoggedIn  = isSuccess
+  const handleRedirect = () => {
+    if (isLoggedIn) {
+      router.push("/chatapp"); // Redirect to chat app if logged in
+    } else {
+      router.push("/login"); // Redirect to login if not logged in
+    }
+  };
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
       {/* Hero Section */}
@@ -22,7 +35,7 @@ export default function Page() {
                 Join our magical storytelling adventure with an AI friend who brings imagination to life, creating unforgettable stories for young minds.
               </p>
               <div className="flex gap-4">
-                <Button size="lg" className="bg-[#FFA726] hover:bg-[#FF6F61] text-white text-lg px-8 py-6 rounded-full shadow-lg transition-all hover:scale-105">
+                <Button size="lg" className="bg-[#FFA726] hover:bg-[#FF6F61] text-white text-lg px-8 py-6 rounded-full shadow-lg transition-all hover:scale-105" onClick={handleRedirect}>
                   Start Your Story
                 </Button>
                 <Button size="lg" variant="outline" className="text-black border-white hover:bg-white/20 text-lg px-8 py-6 rounded-full shadow-lg transition-all hover:scale-105">
