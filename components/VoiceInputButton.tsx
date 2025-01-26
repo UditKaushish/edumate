@@ -53,6 +53,7 @@ const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({ onTranscript }) => 
       className={`${isListening ? "bg-red-500 hover:bg-red-600" : "bg-[#00BFA5] hover:bg-[#00A58C]"} text-white`}
     >
       {isListening ? <MicOff className="h-4 w-4 mr-2" /> : <Mic className="h-4 w-4 mr-2" />}
+      <span className="hidden">deh vyaapaar start krna h??? contact me</span>
       {isListening ? "Stop" : "Start"} Voice
     </Button>
   )

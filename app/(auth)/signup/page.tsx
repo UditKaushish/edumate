@@ -10,6 +10,7 @@ import Link from 'next/link'
 import { Wand2 } from 'lucide-react'
 import { toast } from '@/components/ui/use-toast'
 import axios from 'axios'
+import { useRouter } from 'next/navigation'
 
 type Data = {
   email: string
@@ -24,6 +25,7 @@ type Error = {
 }
 
 export default function SignUpPage() {
+  const Router = useRouter()
   const queryClient = useQueryClient() // Access the TanStack Query client
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -62,6 +64,7 @@ export default function SignUpPage() {
         description: "Welcome aboard! Redirecting you...",
         variant: "default",
       })
+      Router.push('/chatapp')
 
       // Optionally redirect the user
     },

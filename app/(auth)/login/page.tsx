@@ -52,7 +52,6 @@ export default function LoginPage() {
       variant: "default", 
     })
     router.push('/chatapp')
-    window.location.reload();
     return result
   }
 
@@ -74,8 +73,7 @@ export default function LoginPage() {
         console.log('Login successful:', data)
   
         // Redirect the user to /chatapp after successful login
-        router.push('/chatapp')
-        router.refresh()
+        router.replace('/chatapp')
       } else {
         toast({
           title: "Login Failed",

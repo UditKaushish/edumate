@@ -68,6 +68,8 @@ body {
   }
 }
 
+/* whole nation wants to know, your rate */
+
 @layer base {
   * {
     @apply border-border;

@@ -11,6 +11,7 @@ export default function AnchorLink({ href, active, children, onClick }: { href: 
       }
       if (onClick) onClick();
     };
+    // sex note me bta kiska naaam likhun
   
     return (
       <a

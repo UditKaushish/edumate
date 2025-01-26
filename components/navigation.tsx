@@ -10,19 +10,27 @@ import { BookOpen, LogIn, LogOut, Menu, X } from "lucide-react"
 import NavLink from "@/components/support/navlink"
 import AnchorLink from "@/components/support/anchorlink"
 
-export const useProfile = ()=>{
+export const useProfile = () => {
   return useQuery({
-    queryKey: ["profile"],
+    queryKey: ['profile'], // Unique key for caching and refetching
     queryFn: async () => {
-      const authToken = typeof window !== "undefined" ? localStorage.getItem("Token") : null
-      if (!authToken) throw new Error("No token found")
-      const response = await axios.get(`http://localhost:5000/auth/profile`, {
+      const authToken = typeof window !== 'undefined' ? localStorage.getItem('Token') : null;
+
+      if (!authToken) {
+        throw new Error('No token found');
+      }
+
+      const response = await axios.get('http://localhost:5000/auth/profile', {
         headers: { Authorization: `Bearer ${authToken}` },
-      })
-      return response.data
+      });
+
+      return response.data;
     },
-  })
-}
+    staleTime: Infinity, // Data remains fresh (no automatic refetch)
+    refetchOnWindowFocus: false, // Prevents refetching on window focus
+    refetchOnReconnect: false, // Prevents refetching on network reconnect
+  });
+};
 
 export function Navigation() {
   const pathname = usePathname()

@@ -15,7 +15,8 @@
     "utils": "@/lib/utils",
     "ui": "@/components/ui",
     "lib": "@/lib",
-    "hooks": "@/hooks"
+    "hooks": "@/hooks",
+    "chut":"teri bhen ki , saade aisi website pe koi mute bhi na "
   },
   "iconLibrary": "lucide"
 }

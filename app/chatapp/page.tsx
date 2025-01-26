@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback} from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,20 +38,22 @@ const ChatApp: React.FC<ChatAppProps> = () => {
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChat, setActiveChat] = useState<string>("");  // State for active chat
   const [question, setQuestion] = useState<string>("");  // State for question
-  const [answer, setAnswer] = useState<string>("");  // State for answer
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [voiceEnabled, setVoiceEnabled] = useState<boolean>(false);
   const [availableVoices, setAvailableVoices] = useState<Voice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<string>("");
   const [mounted, setMounted] = useState<boolean>(false);
-
+  const [forceRefresh, setForceRefresh] = useState(false);
+  const sessionCreatedRef = useRef(false);
   const { data } = useChatList();
+  const fetchedChatsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (data) {
       // Safely initialize chats with empty messages
       setChats((prevChats) =>
         data.map((chat) => {
-          const existingChat = prevChats.find((c) => c.id === chat.chatId);
+          console.log(chat);
+          const existingChat = prevChats.find((c) => c.id === chat.id);
           return {
             id: chat.chatId,
             name: chat.Name,
@@ -64,6 +66,7 @@ const ChatApp: React.FC<ChatAppProps> = () => {
   
   useEffect(() => {
     if (activeChat) {
+      setForceRefresh((prev) => !prev); // Force a re-render
       // Clear messages for the newly active chat
       setChats((prevChats) =>
         prevChats.map((chat) =>
@@ -75,32 +78,47 @@ const ChatApp: React.FC<ChatAppProps> = () => {
     }
   }, [activeChat]);
   
-  const { data: chatdata } = useGetChatHistory({
+  const { data: chatdata,isPending:Pendingrender } = useGetChatHistory({
     chatId: activeChat,
     page: 1,
     limit: 10,
   });
   
   useEffect(() => {
-    if (chatdata) {
-      setChats((prevChats) =>
-        prevChats.map((chat) => {
-          if (chat.id === activeChat) {
-            const updatedMessages = chatdata.messages.map((message) => ({
-              question: message.message,
-              answer: message.response,
-            }));
+    if (chatdata && activeChat) {
+      // Prevent multiple fetches for the same chat
+        const updatedMessages = chatdata.messages.map((message) => ({
+          question: message.message,
+          answer: message.response,
+        }));
   
-            // Only update messages if they are different
-            if (JSON.stringify(chat.messages) !== JSON.stringify(updatedMessages)) {
-              return { ...chat, messages: updatedMessages };
-            }
-          }
-          return chat;
-        })
-      );
+        // Use setTimeout to introduce a delay before updating the chat messages
+        setTimeout(() => {
+          setChats(prev => {
+            console.log(prev);
+            console.log(activeChat);
+  
+            // Find the chat with the activeChat ID
+            const updatedChats = prev.map(chat => {
+              if (chat.id === activeChat) {
+                return {
+                  ...chat,  // Copy the chat object
+                  messages: updatedMessages  // Replace messages with updated ones
+                };
+              }
+              return chat;
+            });
+  
+            // Make sure the returned object reference changes (even if nothing is updated)
+            return [...updatedChats]; // Creating a new array reference
+          });
+  
+          // Mark this chat as fetched
+          fetchedChatsRef.current.add(activeChat);
+        }, 300); // Delay of 300ms (you can adjust this as needed)
     }
   }, [chatdata, activeChat]);
+  
 
   // const { mutate: getChatHistory } = useGetChatHistory();
   // useEffect(() => {
@@ -204,11 +222,10 @@ const sendMessage = async () => {
     }
 
     const data = await response.json();
-    setAnswer(data.answer);  // Set the answer separately
     addAnswer(activeChat, data.answer,question);
   } catch (error) {
     console.error("Error fetching answer:", error);
-    setAnswer("Sorry, I couldn't fetch an answer. Please try again.");
+
     addAnswer(activeChat, "Sorry, I couldn't fetch an answer. Please try again.",question);
   } finally {
     setIsLoading(false);
@@ -236,13 +253,13 @@ const sendMessage = async () => {
     createSession(undefined, {
       onSuccess: (data) => {
         const newChat = {
-          id: data.chatId, // Use the chatId from the response
+          id: data.id, // Use the chatId from the response
           name: data.Name || `New Adventure ${data.chatId}`, // Use the Name from the response or a default value
           messages: [], // Initialize messages as an empty array
         };
-
-        setChats((prevChats) => [...prevChats, newChat]); // Add the new chat to the list
         setActiveChat(data.chatId); // Set the new chat as active
+        setChats((prevChats) => [newChat,...prevChats]); // Add the new chat to the list
+        console.log("mai nHI");
       },
       onError: (error) => {
         console.error('Failed to create a new chat session:', error.message);
@@ -251,20 +268,36 @@ const sendMessage = async () => {
   },[createSession]);
   useEffect(() => {
     if (data) {
+      setActiveChat(data[0]?.chatId || "");
       setChats(data.map((chat) => ({ id: chat.chatId, name: chat.Name, messages: [] })));
     }
   }, [data]);
   useEffect(() => {
     if (!mounted) {
       setMounted(true); // Mark the component as mounted
-      if (!activeChat) {
+      if (!activeChat && !sessionCreatedRef.current) {
         handleNewChat();
+        sessionCreatedRef.current = true; // Set flag to true once session is created
       }
     }
-  }, [activeChat, handleNewChat, mounted]);
+  }, [activeChat, handleNewChat, mounted,chats]);
   const handleSelectChat = (id: string) => {
-    setActiveChat(id);
+    // Clear previous messages if not already fetched
+    if (!fetchedChatsRef.current.has(id)) {
+      setChats(prevChats =>
+        prevChats.map(chat =>
+          chat.id === id ? { ...chat, messages: [] } : chat
+        )
+      );
+    }
+  
+    // Set a timeout to simulate the loading delay before setting the active chat
+    setTimeout(() => {
+      setForceRefresh(prev => !prev); // Force a re-render
+      setActiveChat(id); // Set the selected chat as active
+    }, 300); // Adjust the timeout delay as needed (300ms delay in this example)
   };
+  
 
   const { mutate: editChatName} = useEditChatName();
 
@@ -296,7 +329,7 @@ const sendMessage = async () => {
         // Update chats after the mutation is successful
         setChats((prevChats) => prevChats.filter((chat) => chat.id !== id));
         if (activeChat === id) {
-          setActiveChat(chats[0]?.id || "");
+          setActiveChat(activeChat === id ? chats[0]?.id || "" : activeChat);
         }
       },
       onError: (error) => {
@@ -306,7 +339,9 @@ const sendMessage = async () => {
     });
   };
 
-  const currentChat = chats.find((chat) => chat.id === activeChat);
+  const currentChat = Array.isArray(chats)
+  ? chats.find((chat) => chat.id === activeChat)
+  : null;
 
   if (isPending) {
     // Show a loading screen while user authentication is pending
@@ -315,6 +350,13 @@ const sendMessage = async () => {
         <Loader className="h-12 w-12 text-white animate-spin" />
       </div>
     );
+  }
+  if(Pendingrender){
+    return(
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#00BFA5] to-[#6EC5E9]">
+        <Loader className="h-12 w-12 text-white animate-spin" />
+      </div>
+    )
   }
   if (!isLoggedIn) {
     router.push("/login");

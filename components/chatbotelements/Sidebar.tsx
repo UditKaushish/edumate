@@ -1,13 +1,15 @@
 import type React from "react"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { PlusCircle, Pencil, Trash2, Menu, X } from "lucide-react"
+
 interface Chat {
   id: string
   name: string
 }
+
 interface ChatSidebarProps {
   chats: Chat[]
   activeChat: string | null
@@ -18,7 +20,7 @@ interface ChatSidebarProps {
 }
 
 const ChatSidebar: React.FC<ChatSidebarProps> = ({
-  chats,
+  chats = [],
   activeChat,
   onNewChat,
   onSelectChat,
@@ -30,20 +32,22 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const sidebarRef = useRef<HTMLDivElement>(null)
 
-  const handleRenameClick = (chat: Chat) => {
+  const handleRenameClick = useCallback((chat: Chat) => {
     setEditingChatId(chat.id)
     setEditingChatName(chat.name)
-  }
+  }, [])
 
-  const handleRenameSubmit = (id: string) => {
-    onRenameChat(id, editingChatName)
-    
-    setEditingChatId(null)
-  }
+  const handleRenameSubmit = useCallback(
+    (id: string) => {
+      onRenameChat(id, editingChatName)
+      setEditingChatId(null)
+    },
+    [editingChatName, onRenameChat]
+  )
 
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen)
-  }
+  const toggleMobileMenu = useCallback(() => {
+    setIsMobileMenuOpen((prev) => !prev)
+  }, [])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -57,6 +61,61 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
       document.removeEventListener("mousedown", handleClickOutside)
     }
   }, [])
+
+  const renderedChats = useMemo(
+    () =>
+      console.log(chats) ||
+      chats.map((chat) => (
+        <div
+          key={chat.id}
+          className={`mb-2 p-2 rounded cursor-pointer flex items-center justify-between ${
+            chat.id === activeChat ? "bg-[#00A896]" : "hover:bg-[#00A896]"
+          }`}
+          onClick={() => {
+            onSelectChat(chat.id)
+            setIsMobileMenuOpen(false)
+          }}
+        >
+          {editingChatId === chat.id ? (
+            <Input
+              value={editingChatName}
+              onChange={(e) => setEditingChatName(e.target.value)}
+              onBlur={() => handleRenameSubmit(chat.id)}
+              onKeyDown={(e) => e.key === "Enter" && handleRenameSubmit(chat.id)}
+              className="text-black"
+              autoFocus
+            />
+          ) : (
+            <>
+              <span className="truncate flex-grow">{chat.name}</span>
+              <div className="flex space-x-1">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleRenameClick(chat)
+                  }}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDeleteChat(chat.id)
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      )),
+    [chats, activeChat, editingChatId, editingChatName, handleRenameClick, handleRenameSubmit, onSelectChat, onDeleteChat]
+  )
 
   return (
     <>
@@ -78,57 +137,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
             <PlusCircle className="mr-2 h-4 w-4" />
             New Chat
           </Button>
-          <ScrollArea className="flex-grow">
-            {chats.map((chat) => (
-              <div
-                key={chat.id}
-                className={`mb-2 p-2 rounded cursor-pointer flex items-center justify-between ${
-                  chat.id === activeChat ? "bg-[#00A896]" : "hover:bg-[#00A896]"
-                }`}
-                onClick={() => {
-                  onSelectChat(chat.id)
-                  setIsMobileMenuOpen(false)
-                }}
-              >
-                {editingChatId === chat.id ? (
-                  <Input
-                    value={editingChatName}
-                    onChange={(e) => setEditingChatName(e.target.value)}
-                    onBlur={() => handleRenameSubmit(chat.id)}
-                    onKeyDown={(e) => e.key === "Enter" && handleRenameSubmit(chat.id)}
-                    className="text-black"
-                    autoFocus
-                  />
-                ) : (
-                  <>
-                    <span className="truncate flex-grow">{chat.name}</span>
-                    <div className="flex space-x-1">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleRenameClick(chat)
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onDeleteChat(chat.id)
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </div>
-            ))}
-          </ScrollArea>
+          <ScrollArea className="flex-grow">{renderedChats}</ScrollArea>
         </div>
       </div>
     </>
@@ -136,4 +145,3 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
 }
 
 export default ChatSidebar
-

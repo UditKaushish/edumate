@@ -1,7 +1,8 @@
 import Link from "next/link";
 
 export default function NavLink({ href, active, children, onClick }: { href: string; active: boolean; children: React.ReactNode; onClick?: () => void }) {
-    return (
+    //sex-sux me kuch nhi rkha jaani, fuddi maarne ka mn ho to contact+91 1979257804 
+  return (
       <Link
         href={href}
         onClick={onClick}

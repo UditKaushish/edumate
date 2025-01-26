@@ -96,10 +96,19 @@ export const useChatList = () => {
         throw new Error(errorData.message || 'Failed to fetch chat list');
       }
 
-      return response.json(); // Parse the response containing the list of chats
+      const data = await response.json(); // Parse the response containing the list of chats
+
+      // Sort the chat list in descending order by createdAt
+      return data.sort((a: ChatSession, b: ChatSession) => {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
     },
+    staleTime: Infinity, // Data is always fresh (never refetched automatically)
+    refetchOnWindowFocus: false, // Prevents refetching when the window regains focus
+    refetchOnReconnect: false, // Prevents refetching on network reconnect
   });
 };
+
 
 type EditChatNameResponse = {
     id: string;
